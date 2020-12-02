@@ -2,6 +2,8 @@ package controllers
 
 import (
 	"context"
+	"os"
+	"strings"
 	"time"
 
 	"github.com/ViaQ/logerr/log"
@@ -51,6 +53,12 @@ func (r *ElasticsearchReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 		return ctrl.Result{}, nil
 	}
 
+	//skip reconciliation if operator is deployed globally but the resource
+	//wants to be managed by a namespaced operator
+	if isNamespaceManaged(cluster) && !isNamespaceDeployed() {
+		return ctrl.Result{}, nil
+	}
+
 	if cluster.Spec.Spec.Image != "" {
 		if cluster.Status.Conditions == nil {
 			cluster.Status.Conditions = []loggingv1.ClusterCondition{}
@@ -86,4 +94,24 @@ func (r *ElasticsearchReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		Named("elasticsearch-controller").
 		For(&loggingv1.Elasticsearch{}).
 		Complete(r)
+}
+
+//isNamespaceManaged determines if a deployment of this operator in a non-global namespace
+//should coordinate the resource in lieu of the globally deployed operator
+func isNamespaceManaged(cluster *loggingv1.Elasticsearch) bool {
+	operatorNS := os.Getenv("POD_NAMESPACE")
+	if operatorNS == "" {
+		return false
+	}
+	namespacemanaged := "elasticsearch.openshift.io/namespacemanaged"
+	value, found := cluster.Annotations[namespacemanaged]
+	if !found || value == "" || "false" == strings.ToLower(value) {
+		return false
+	}
+	return operatorNS == cluster.Namespace
+}
+
+func isNamespaceDeployed() bool {
+	watchNS := os.Getenv("WATCH_NAMESPACE")
+	return watchNS != ""
 }

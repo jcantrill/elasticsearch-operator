@@ -80,6 +80,11 @@ func (r *KibanaReconciler) Reconcile(request ctrl.Request) (ctrl.Result, error) 
 		return reconcile.Result{}, nil
 	}
 
+	//skip reconciliation if operator is deployed globally but the resource
+	//wants to be managed by a namespaced operator
+	if isNamespaceManaged(kibanaInstance.Namespace, kibanaInstance.Annotations) && !isNamespaceDeployed() {
+		return ctrl.Result{}, nil
+	}
 	// keep track of the fact that we processed this kibana for future events and for mapping
 	registerKibanaNamespacedName(request)
 

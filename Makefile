@@ -172,6 +172,16 @@ test-e2e-upgrade:
 	hack/testing-olm-upgrade/test-030-olm-upgrade-n-1-n.sh
 .PHONY: test-e2e-upgrade
 
+deploy-catalog:
+	LOCAL_IMAGE_ELASTICSEARCH_OPERATOR_REGISTRY=127.0.0.1:5000/openshift/elasticsearch-operator-registry \
+	$(MAKE) elasticsearch-catalog-build
+	IMAGE_ELASTICSEARCH_OPERATOR_REGISTRY=image-registry.openshift-image-registry.svc:5000/openshift/elasticsearch-operator-registry \
+	IMAGE_ELASTICSEARCH_OPERATOR=image-registry.openshift-image-registry.svc:5000/openshift/origin-elasticsearch-operator:latest \
+	$(MAKE) elasticsearch-catalog-deploy
+.PHONY: deploy-catalog
+
+deploy-elasticsearch-operator:
+
 # to use these targets, ensure the following env vars are set:
 # either each IMAGE env var:
 # IMAGE_ELASTICSEARCH_OPERATOR_REGISTRY

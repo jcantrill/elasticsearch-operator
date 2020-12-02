@@ -55,7 +55,7 @@ func (r *ElasticsearchReconciler) Reconcile(request ctrl.Request) (ctrl.Result, 
 
 	//skip reconciliation if operator is deployed globally but the resource
 	//wants to be managed by a namespaced operator
-	if isNamespaceManaged(cluster) && !isNamespaceDeployed() {
+	if isNamespaceManaged(cluster.Namespace, cluster.Annotations) && !isNamespaceDeployed() {
 		return ctrl.Result{}, nil
 	}
 
@@ -98,17 +98,17 @@ func (r *ElasticsearchReconciler) SetupWithManager(mgr ctrl.Manager) error {
 
 //isNamespaceManaged determines if a deployment of this operator in a non-global namespace
 //should coordinate the resource in lieu of the globally deployed operator
-func isNamespaceManaged(cluster *loggingv1.Elasticsearch) bool {
+func isNamespaceManaged(namespace string, annotations map[string]string) bool {
 	operatorNS := os.Getenv("POD_NAMESPACE")
 	if operatorNS == "" {
 		return false
 	}
 	namespacemanaged := "elasticsearch.openshift.io/namespacemanaged"
-	value, found := cluster.Annotations[namespacemanaged]
+	value, found := annotations[namespacemanaged]
 	if !found || value == "" || "false" == strings.ToLower(value) {
 		return false
 	}
-	return operatorNS == cluster.Namespace
+	return operatorNS == namespace
 }
 
 func isNamespaceDeployed() bool {
